@@ -1,0 +1,26 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  pr-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Linter (flake8)
+        run: |
+          flake8 --max-line-length=100 --ignore=E203,W503 src/
