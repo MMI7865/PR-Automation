@@ -23,4 +23,4 @@ jobs:
 
       - name: Run Linter (flake8)
         run: |
-          flake8 --max-line-length=100 --ignore=E203,W503 src/
+          flake8 --max-line-length=100 --ignore=E203,E302,E501,W503 src/

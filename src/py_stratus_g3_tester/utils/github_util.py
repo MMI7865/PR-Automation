@@ -66,7 +66,7 @@ def validate_pr_check(pr_number: int, check_name: str = "pr-check"):
     latest_commit = pr.head.repo.get_commit(pr.head.sha)
 
     print(f"⚡ Monitoring '{check_name}' check run for PR #{pr_number} - {pr.title} (Commit SHA: {pr.head.sha})")
-    
+
     target_check = None
 
     # Wait until the check run appears
