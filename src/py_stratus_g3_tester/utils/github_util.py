@@ -2,8 +2,6 @@ import os
 import time
 from github import Github
 from github.Repository import Repository
-from github.PullRequest import PullRequest
-from github.CheckRun import CheckRun
 
 # Get GitHub token from environment variable
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -11,6 +9,7 @@ REPO_NAME = "MMI7865/PR-Automation"
 
 if not GITHUB_TOKEN:
     raise ValueError("GITHUB_TOKEN environment variable not set!")
+
 
 # Function to authenticate and get repository instance
 def get_github_repo() -> Repository:
