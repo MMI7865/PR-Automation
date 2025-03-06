@@ -56,10 +56,18 @@ def create_pull_request(branch_name: str, pr_title: str, pr_body: str):
     print(f"✅ PR created: {pr.html_url}")
     return pr
 
-def validate_pr_check(pr_number: int, check_name: str = "pr-check"):
+def validate_pr_check(pr_number: int, check_name: str = "pr-check", timeout_seconds: int = 300) -> bool:
     """
     Checks the status of a specific check run (default: "pr-check") for a given PR.
-    Polls every 10 seconds until the check appears and completes, then prints the result.
+    Polls every 10 seconds until the check appears and completes or the timeout is reached.
+
+    Parameters:
+        pr_number (int): The PR number to monitor.
+        check_name (str): The name of the check run to monitor.
+        timeout_seconds (int): Maximum time (in seconds) to wait for the check to complete.
+
+    Returns:
+        bool: True if the check passes, False otherwise.
     """
     repo = get_github_repo()
     pr = repo.get_pull(pr_number)
@@ -68,9 +76,14 @@ def validate_pr_check(pr_number: int, check_name: str = "pr-check"):
     print(f"⚡ Monitoring '{check_name}' check run for PR #{pr_number} - {pr.title} (Commit SHA: {pr.head.sha})")
 
     target_check = None
+    start_time = time.time()  # Record the start time
 
     # Wait until the check run appears
     while not target_check:
+        if time.time() - start_time > timeout_seconds:
+            print(f"⏳ Timeout reached! '{check_name}' check run did not start within {timeout_seconds} seconds.")
+            return False
+
         check_runs = latest_commit.get_check_runs()
         target_check = next((check for check in check_runs if check.name == check_name), None)
 
@@ -78,14 +91,21 @@ def validate_pr_check(pr_number: int, check_name: str = "pr-check"):
             print(f"⏳ Waiting for '{check_name}' check run to start...")
             time.sleep(10)
 
+    # Wait until the check completes
     while target_check.status in ["queued", "in_progress"]:
+        if time.time() - start_time > timeout_seconds:
+            print(f"⏳ Timeout reached! '{check_name}' check run did not complete within {timeout_seconds} seconds.")
+            return False
+
         print(f"\nCheck Run Name: {target_check.name}")
         print(f"Status: {target_check.status}")
         print("⏳ Check is still in progress. Waiting 10 seconds...")
         time.sleep(10)
+
         check_runs = latest_commit.get_check_runs()
         target_check = next((check for check in check_runs if check.name == check_name), None)
 
+    # Final check result
     print(f"\nCheck Run Name: {target_check.name}")
     print(f"Status: {target_check.status}")
     print(f"Conclusion: {target_check.conclusion}")
@@ -97,3 +117,34 @@ def validate_pr_check(pr_number: int, check_name: str = "pr-check"):
     else:
         print(f"❌ Check '{check_name}' failed!")
         return False
+    
+def auto_merge_pr(pr_number: int, merge_method: str = "squash") -> bool:
+    """
+    Merges the PR if it is mergeable and not already merged.
+
+    Parameters:
+        pr_number (int): The number of the PR to merge.
+        merge_method (str): The merge method, default is "squash".
+                            Options: "merge", "squash", "rebase".
+    """
+    repo = get_github_repo()
+    pr = repo.get_pull(pr_number)
+
+    # Check if PR is already merged
+    if pr.merged:
+        print(f"✅ PR #{pr_number} is already merged.")
+        return True
+
+    # Check if PR is mergeable
+    if not pr.mergeable:
+        print(f"❌ PR #{pr_number} is not mergeable. Check for conflicts or failed status checks.")
+        return False
+
+    try:
+        pr.merge(merge_method=merge_method, commit_message=f"Merging PR #{pr_number} automatically.")
+        print(f"✅ PR #{pr_number} has been successfully merged using '{merge_method}'!\n")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to merge PR #{pr_number}: {e}")
+        return False
+

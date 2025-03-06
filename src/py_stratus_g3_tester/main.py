@@ -1,5 +1,5 @@
 import uuid
-from utils.github_util import create_branch, commit_changes, create_pull_request, validate_pr_check
+from utils.github_util import create_branch, commit_changes, create_pull_request, validate_pr_check, auto_merge_pr
 if __name__ == "__main__":
     branch_name = "test_" + str(uuid.uuid4())[:4]
     file_path = "README.md"
@@ -11,4 +11,5 @@ if __name__ == "__main__":
     create_branch(branch_name)
     commit_changes(branch_name, file_path, new_content, commit_message)
     pr = create_pull_request(branch_name, pr_title, pr_body)
-    validate_pr_check(pr.number)
+    if validate_pr_check(pr.number):
+        auto_merge_pr(pr.number)
