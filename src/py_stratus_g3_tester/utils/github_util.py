@@ -117,8 +117,8 @@ def validate_pr_check(pr_number: int, check_name: str = "pr-check", timeout_seco
     else:
         print(f"❌ Check '{check_name}' failed!")
         return False
-    
-def auto_merge_pr(pr_number: int, merge_method: str = "squash") -> bool:
+
+def auto_merge_pr(pr_number: int) -> str | None:
     """
     Merges the PR if it is mergeable and not already merged.
 
@@ -126,6 +126,10 @@ def auto_merge_pr(pr_number: int, merge_method: str = "squash") -> bool:
         pr_number (int): The number of the PR to merge.
         merge_method (str): The merge method, default is "squash".
                             Options: "merge", "squash", "rebase".
+
+    Returns:
+        str: The full commit SHA of the merge if successful.
+        None: If the merge is not successful.
     """
     repo = get_github_repo()
     pr = repo.get_pull(pr_number)
@@ -133,18 +137,22 @@ def auto_merge_pr(pr_number: int, merge_method: str = "squash") -> bool:
     # Check if PR is already merged
     if pr.merged:
         print(f"✅ PR #{pr_number} is already merged.")
-        return True
+        return pr.merge_commit_sha  # Return the already merged commit SHA
 
     # Check if PR is mergeable
     if not pr.mergeable:
         print(f"❌ PR #{pr_number} is not mergeable. Check for conflicts or failed status checks.")
-        return False
+        return None
 
     try:
-        pr.merge(merge_method=merge_method, commit_message=f"Merging PR #{pr_number} automatically.")
-        print(f"✅ PR #{pr_number} has been successfully merged using '{merge_method}'!\n")
-        return True
+        merge_result = pr.merge(commit_message=f"Merging PR #{pr_number} automatically.")
+
+        if merge_result and merge_result.sha:
+            print(f"✅ PR #{pr_number} has been successfully merged!")
+            print(f"🔗 Merge Commit SHA: {merge_result.sha}\n")
+            return merge_result.sha
+
     except Exception as e:
         print(f"❌ Failed to merge PR #{pr_number}: {e}")
-        return False
 
+    return None
